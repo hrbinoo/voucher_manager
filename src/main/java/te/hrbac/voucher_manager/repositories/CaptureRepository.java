@@ -10,7 +10,5 @@ import java.util.Optional;
 
 @Repository
 public interface CaptureRepository extends CrudRepository<Capture, Long> {
-    @Override
-    Capture save(Capture capture);
 
 }

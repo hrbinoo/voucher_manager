@@ -8,11 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface VoucherRepository extends CrudRepository<Voucher, Long> {
-    @Override
-    Optional<Voucher> findById(Long id);
-    Optional<Voucher> findVoucherByIdCode(String idCode);
-
-    @Override
-    Voucher save(Voucher voucher);
+    Optional<Voucher> findByIdCode(String idCode);
 
 }

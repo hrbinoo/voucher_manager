@@ -25,16 +25,9 @@ public class CaptureController {
     private CaptureService captureService;
 
     @PostMapping("/voucher/")
-    public ResponseEntity<Long> captureVoucher(@RequestBody List<CaptureItem> captureItems) throws TransactionRolledbackException {
+    public Long captureVoucher(@RequestBody List<CaptureItem> captureItems) throws TransactionRolledbackException {
         Capture capture = new Capture(captureItems);
-        try{
-            this.captureService.captureVoucher(capture);
-            return ResponseEntity.ok().body(capture.getId());
-        } catch (VoucherNotFoundException e){
-            return ResponseEntity.notFound().build();
-        } catch (TransactionException e){
-            return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
-        }
-        //return ResponseEntity.internalServerError().build();
+        captureService.captureVoucher(capture);
+        return capture.getId();
     }
 }

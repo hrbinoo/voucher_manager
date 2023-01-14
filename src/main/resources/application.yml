@@ -3,9 +3,20 @@ spring:
     driver-class-name: org.postgresql.Driver
     username: postgres
     password: postgrespw
-    url: jdbc:postgresql://localhost:49153/postgres
+    url: jdbc:postgresql://localhost:5432/postgres
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
 jwt:
   secret: kameleon82
+
+password:
+  hashing:
+    algo:
+      argon2:
+        type: 1
+        saltLength: 16
+        hashLength: 32
+        iterations: 4
+        memory: 65586
+        parrallelism: 2

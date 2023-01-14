@@ -1,18 +1,19 @@
-package te.hrbac.voucher_manager.services.database;
+package te.hrbac.voucher_manager.services.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import te.hrbac.voucher_manager.exceptions.NotFoundException;
 import te.hrbac.voucher_manager.model.Role;
 import te.hrbac.voucher_manager.model.User;
 import te.hrbac.voucher_manager.repositories.RoleRepository;
 import te.hrbac.voucher_manager.repositories.UserRepository;
 import te.hrbac.voucher_manager.services.UserService;
 
-import javax.transaction.Transactional;
 import java.util.List;
 
-@Service @Transactional @Slf4j
+@Service @Slf4j
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
@@ -20,32 +21,21 @@ public class UserServiceImpl implements UserService {
     private RoleRepository roleRepository;
 
     @Override
+    @Transactional
     public User saveUser(User user) {
-        log.info("User: [{}] was added to the Database",user.getUsername());
         return userRepository.save(user);
     }
 
     @Override
-    public Role saveRole(Role role) {
-        log.info("Role: [{}] was added to the database", role.getName());
-        return roleRepository.save(role);
-    }
-
-    @Override
+    @Transactional
     public void provideRoleToUser(String username, String rolename) {
-        log.info("Role [{}] added to [{}]", rolename, username);
-        User user = userRepository.findByUsername(username).get();
-        Role role = roleRepository.findByName(rolename).get();
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new NotFoundException(User.class, "username",username));
+        Role role = roleRepository.findByName(rolename).orElseThrow(() -> new NotFoundException(Role.class, "role", rolename));
         user.getRoles().add(role);
     }
 
     @Override
-    public User getUser(String username) {
-        log.info("User [{}] was fetched", username);
-        return userRepository.findByUsername(username).get();
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public List<User> getUsers() {
         return userRepository.findAll();
     }

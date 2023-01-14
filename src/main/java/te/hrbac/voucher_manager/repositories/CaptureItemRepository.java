@@ -8,7 +8,5 @@ import java.util.List;
 
 @Repository
 public interface CaptureItemRepository extends CrudRepository<CaptureItem, Long> {
-    @Override
-    CaptureItem save(CaptureItem captureItems);
     List<CaptureItem> findAllByvoucherCode(String id);
 }

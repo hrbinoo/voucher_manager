@@ -1,17 +1,17 @@
-package te.hrbac.voucher_manager.services.database;
+package te.hrbac.voucher_manager.services.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.TransactionException;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.stereotype.Service;
-import te.hrbac.voucher_manager.model.Capture;
+import org.springframework.transaction.annotation.Transactional;
+import te.hrbac.voucher_manager.exceptions.NotFoundException;
 import te.hrbac.voucher_manager.model.CaptureItem;
 import te.hrbac.voucher_manager.model.Voucher;
 import te.hrbac.voucher_manager.repositories.CaptureItemRepository;
 import te.hrbac.voucher_manager.repositories.VoucherRepository;
 import te.hrbac.voucher_manager.services.VoucherService;
 
-import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -19,11 +19,12 @@ import java.util.Random;
 
 @Service @Slf4j
 public class VoucherServiceImpl implements VoucherService {
-    private final DateTimeFormatter SHORT_DATE_HOUR_FORMAT = DateTimeFormatter.ofPattern("ddMMyyHH"); //den - mesic - rok - hodina dne
-    private final DateTimeFormatter SHORT_DATE_FORMAT = DateTimeFormatter.ofPattern("ddMMyy"); // den - mesic - rok
+    /* den - mesic - rok - hodina dne */
+    private final DateTimeFormatter SHORT_DATE_HOUR_FORMAT = DateTimeFormatter.ofPattern("ddMMyyHH");
+    /* den - mesic - rok */
+    private final DateTimeFormatter SHORT_DATE_FORMAT = DateTimeFormatter.ofPattern("ddMMyy");
     private final int SUFFIX_LENGTH = 12;
     private final String POOL = "AaBbCcDdEeFfGgHhLMmNnoPpQqRrSsTtUuVvWwXxYyZz0123456789";
-    private final int TEST_SUFFIX_LENGTH = 1;
     private final String TEST_POOL = "1234567890";
 
     @Autowired
@@ -32,44 +33,46 @@ public class VoucherServiceImpl implements VoucherService {
     @Autowired
     private CaptureItemRepository captureItemRepository;
 
-
+    /*
+    *  The attempts are logged to ensure that the id code is not generated too many times
+    *  which could have impact on performance.
+    * */
     @Override
+    @Transactional
     public Voucher createVoucher(int amount) {
         int counterCheck = 0;
         String code = idCodeGenerator(amount);
-        while(voucherRepository.findVoucherByIdCode(code).isPresent()){
+        while(voucherRepository.findByIdCode(code).isPresent()){
             counterCheck++;
             code = idCodeGenerator(amount);
         }
-        log.info("New Voucher: [{}], Amount: [{}], Attempt: [{}]", code, amount, counterCheck);
+        log.info("Attempt [how many times the id code wa generated]: [{}]", counterCheck);
+        if(counterCheck > 60) log.info("WARNING !!! the id code was generated more than 60 times WARNING !!!");
         return voucherRepository.save(
                 new Voucher(amount, code)
         );
     }
     @Override
+    @Transactional(readOnly = true)
     public Voucher findVoucherByIdCode(String idCode) {
-        log.info("Voucher: [{}] was fetched",idCode);
-        return this.voucherRepository.findVoucherByIdCode(idCode).get();
+        return this.voucherRepository.findByIdCode(idCode).orElseThrow(() -> new NotFoundException(Voucher.class, "voucher", idCode));
     }
 
     @Override
+    @Transactional
     public Voucher activateVoucher(String id, boolean activationFlag) {
-        log.info("Voucher: [{}] was activated: [{}]", id, activationFlag);
-        Voucher voucher = voucherRepository.findVoucherByIdCode(id).get();
+        Voucher voucher = voucherRepository.findByIdCode(id).orElseThrow(() -> new NotFoundException(Voucher.class, "voucher", id));
         voucher.setActive(activationFlag);
-        return this.voucherRepository.save(
-                voucher
-        );//.orElse(null); //.orElse() -> prozatimni reseni => chybovy kod
+        return this.voucherRepository.save(voucher);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CaptureItem> getAllCaptureItems(String id) {
         return captureItemRepository.findAllByvoucherCode(id);
     }
 
-
     // CODE GENERATOR
-
     private String idCodeGenerator(int amount){
         StringBuilder code = new StringBuilder();
         code
